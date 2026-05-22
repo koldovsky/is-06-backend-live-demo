@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+  BETTER_AUTH_SECRET: ci-better-auth-secret-min-32-chars-long
+  BETTER_AUTH_URL: https://ci.example.com
+  VERCEL_ORG_ID: team_xYpUvnYHmiO2Qh7rgrlagIff
+  VERCEL_PROJECT_ID: prj_lg2xJN3vsoeRB2DLHoTquPHy282A
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm run test
+
+      - run: npm run build
+
+  deploy-preview:
+    needs: ci
+    if: github.event_name == 'pull_request' && secrets.VERCEL_TOKEN != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx vercel@latest pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - run: npx vercel@latest build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - id: deploy
+        run: echo "url=$(npx vercel@latest deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
+
+  deploy-production:
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.VERCEL_TOKEN != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx vercel@latest pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - run: npx vercel@latest build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - id: deploy
+        run: echo "url=$(npx vercel@latest deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
