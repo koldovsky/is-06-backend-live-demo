@@ -60,7 +60,7 @@ On every push and pull request to `master`, the [`ci`](.github/workflows/ci.yml)
 4. `npm run test`
 5. `npm run build`
 
-**Deploy (after `ci` passes):** `deploy-preview` on PRs, `deploy-production` on push to `master` — see [CD](#cd-vercel-via-github-actions) below.
+Deploys run on Vercel when CI passes and changes land on `master` — see [CD](#cd-vercel) below.
 
 Run the same checks locally:
 
@@ -75,20 +75,13 @@ Optional: in GitHub **Settings → Branches**, require the `ci` check before mer
 
 ## CD (Vercel)
 
+Repository: **https://github.com/koldovsky/is-06-backend-live-demo**
+
 **Primary:** [Vercel Git integration](https://vercel.com/docs/git) deploys on every push/PR to `master` (connected to [github.com/koldovsky/is-06-backend-live-demo](https://github.com/koldovsky/is-06-backend-live-demo)).
 
-**Optional (GitHub Actions):** After `ci` passes, `deploy-preview` / `deploy-production` run when `VERCEL_TOKEN` is set (classic token from [vercel.com/account/tokens](https://vercel.com/account/tokens)):
+Pushes and PRs to `master` trigger Vercel builds automatically. Production URL: **https://is-06-backend-live-demo.vercel.app**
 
-```bash
-gh secret set VERCEL_TOKEN --repo koldovsky/is-06-backend-live-demo
-```
-
-| Event | Deploy job | Target |
-|-------|------------|--------|
-| Pull request to `master` | `deploy-preview` | Preview URL |
-| Push to `master` | `deploy-production` | Production |
-
-Flow: `vercel pull` → `vercel build` → `vercel deploy --prebuilt` (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+**Optional:** For GitHub Actions deploy (`vercel deploy --prebuilt`), create a [classic token](https://vercel.com/account/tokens) and run `gh secret set VERCEL_TOKEN --repo koldovsky/is-06-backend-live-demo`, then add a `deploy.yml` workflow.
 
 ### Vercel environment variables
 
